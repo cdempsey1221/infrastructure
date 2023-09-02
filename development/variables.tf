@@ -18,3 +18,9 @@ variable "ecs_instance_type" {
   type        = string
   description = "Instance type for ECS Image"
 }
+
+variable "hosted_domain_name" {
+  type        = string
+  description = "Hosted domain name (route53) zone"
+}
+

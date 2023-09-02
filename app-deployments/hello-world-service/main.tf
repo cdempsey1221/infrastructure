@@ -3,11 +3,11 @@ provider "aws" {
 }
 
 resource "aws_cloudwatch_log_group" "hello_svc_logs" {
-  name = "/ecs/hello-world-svc"
+  name = "/ecs/${var.hello_world_service_name}"
 }
 
 resource "aws_security_group" "hello_world_svc_sg" {
-  name        = "${var.environment}-hello_world_svc_sg"
+  name        = "${var.environment}-${var.hello_world_service_name}-sg"
   vpc_id      = var.vpc_id
 
   ingress {
@@ -27,7 +27,7 @@ resource "aws_security_group" "hello_world_svc_sg" {
 }
 
 resource "aws_security_group" "hello_world_svc_alb_sg" {
-  name        = "${var.environment}-hello-world-svc-alb-sg"
+  name        = "${var.environment}-${var.hello_world_service_name}-alb-sg"
   description = "Allow all inbound traffic from ALB"
   vpc_id      = var.vpc_id
 
@@ -47,24 +47,24 @@ resource "aws_security_group" "hello_world_svc_alb_sg" {
   }
 
   tags = {
-    Name = "${var.environment}-hello-world-svc-alb-sg"
+    Name = "${var.environment}-${var.hello_world_service_name}-alb-sg"
   }
 }
 
 resource "aws_lb" "hello_world_svc_alb" {
-  name               = "${var.environment}-hello-world-svc-alb"
+  name               = "${var.environment}-${var.hello_world_service_name}-alb"
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.hello_world_svc_alb_sg.id]
   subnets            = var.public_subnet_ids
 
   tags = {
-    Name = "${var.environment}-hello-world-svc-alb"
+    Name = "${var.environment}-${var.hello_world_service_name}-alb"
   }
 }
 
 resource "aws_lb_target_group" "hello_world_svc_alb_tg" {
-  name       = "${var.environment}-hello-world-svc-alb-tg"
+  name       = "${var.environment}-${var.hello_world_service_name}-alb-tg"
   port       = 80
   protocol   = "HTTP"
   target_type = "ip"
@@ -82,7 +82,7 @@ resource "aws_lb_target_group" "hello_world_svc_alb_tg" {
   }
 
   tags = {
-    Name = "${var.environment}-hello-world-svc-alb-tg"
+    Name = "${var.environment}-${var.hello_world_service_name}-alb-tg"
   }
 }
 
@@ -102,7 +102,7 @@ data "template_file" "hello_world_svc_task_definition" {
 }
 
 resource "aws_ecs_task_definition" "hello_world_svc_task" {
-  family                = "hello-world-svc"
+  family                = var.hello_world_service_name
   container_definitions = data.template_file.hello_world_svc_task_definition.rendered
   network_mode = "awsvpc"
   requires_compatibilities = ["FARGATE"]
@@ -111,12 +111,12 @@ resource "aws_ecs_task_definition" "hello_world_svc_task" {
   execution_role_arn = var.ecs_task_execution_role_arn
 
   tags = {
-    Name = "hello-world-svc"
+    Name = "${var.environment}-${var.hello_world_service_name}"
   }
 }
 
 resource "aws_ecs_service" "hello_world_svc" {
-  name            = "hello-world-svc"
+  name            = var.hello_world_service_name
   cluster         = var.ecs_cluster_id
   launch_type     = "FARGATE"
   platform_version = "LATEST"
@@ -131,11 +131,33 @@ resource "aws_ecs_service" "hello_world_svc" {
 
   load_balancer {
     target_group_arn = aws_lb_target_group.hello_world_svc_alb_tg.arn
-    container_name   = "hello-world-svc"
+    container_name   = "${var.environment}-${var.hello_world_service_name}-ecs"
     container_port   = 8091
   }
 
   tags = {
-    Name = "hello-world-svc"
+    Name = "${var.environment}-${var.hello_world_service_name}-ecs-task"
+  }
+}
+
+# get route53 zone information by zone id
+data "aws_route53_zone" "main-zone" {
+  id = var.route53_main_zone_id
+}
+
+locals {
+  # remove "-svc" from service name for route 53 'A' record
+  hello_world_subdomain_name = replace(var.hello_world_service_name, "-svc", "")
+}
+
+resource "aws_route53_record" "hello_world_svc_alb_record" {
+  zone_id = var.route53_main_zone_id
+  name = "${var.environment}.${local.hello_world_subdomain_name}.${data.aws_route53_zone.main-zone.name}"
+  type    = "A"
+
+  alias {
+    name                   = aws_lb.hello_world_svc_alb.dns_name
+    zone_id                = aws_lb.hello_world_svc_alb.zone_id
+    evaluate_target_health = true
   }
 }

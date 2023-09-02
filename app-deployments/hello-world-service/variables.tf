@@ -24,12 +24,17 @@ variable "public_subnet_ids" {
   description = "Public subnet ids"
 }
 
-variable "ecs_security_group" {
-  type        = string
-  description = "ECS security group"
-}
-
 variable "ecs_task_execution_role_arn" {
   type        = string
   description = "ECS task execution role"
+}
+variable "route53_main_zone_id" {
+  type        = string
+  description = "Route53 main zone id"
+}
+
+variable "hello_world_service_name" {
+  type        = string
+  description = "service name used for Hello World ECS task/service"
+  default     = "hello-world-svc"
 }
