@@ -1,6 +1,6 @@
 [
   {
-    "name": "hello-world-svc",
+    "name": "hello-world-svc-ecs",
     "essential": true,
     "memory": 512,
     "cpu": 256,

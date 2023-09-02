@@ -126,12 +126,12 @@ output "ecs_cluster_id" {
 }
 
 # create Route53 zone shared accross all environments
-resource "aws_route53_zone" "main-zone" {
+resource "aws_route53_zone" "main_zone" {
   name = var.hosted_domain_name
 }
 
 output "route53_main_zone_id" {
-  value = aws_route53_zone.main-zone.zone_id
+  value = aws_route53_zone.main_zone.zone_id
 }
 
 module "hello_world_svc" {
@@ -141,5 +141,5 @@ module "hello_world_svc" {
   ecs_cluster_id              = aws_ecs_cluster.ecs_cluster.id
   public_subnet_ids           = module.vpc-module.public_subnet_ids
   ecs_task_execution_role_arn = aws_iam_role.ecs_tasks_role.arn
-  route53_main_zone_id        = aws_route53_zone.main-zone.zone_id
+  route53_main_zone_id        = aws_route53_zone.main_zone.zone_id
 }

@@ -106,8 +106,8 @@ resource "aws_ecs_task_definition" "hello_world_svc_task" {
   container_definitions = data.template_file.hello_world_svc_task_definition.rendered
   network_mode = "awsvpc"
   requires_compatibilities = ["FARGATE"]
-  cpu = "512"
-  memory = "1024"
+  cpu = "256"
+  memory = "512"
   execution_role_arn = var.ecs_task_execution_role_arn
 
   tags = {
@@ -131,18 +131,18 @@ resource "aws_ecs_service" "hello_world_svc" {
 
   load_balancer {
     target_group_arn = aws_lb_target_group.hello_world_svc_alb_tg.arn
-    container_name   = "${var.environment}-${var.hello_world_service_name}-ecs"
+    container_name   = "${var.hello_world_service_name}-ecs"
     container_port   = 8091
   }
 
   tags = {
-    Name = "${var.environment}-${var.hello_world_service_name}-ecs-task"
+    Name = "${var.hello_world_service_name}-ecs-task"
   }
 }
 
 # get route53 zone information by zone id
-data "aws_route53_zone" "main-zone" {
-  id = var.route53_main_zone_id
+data "aws_route53_zone" "main_zone" {
+  zone_id = var.route53_main_zone_id
 }
 
 locals {
@@ -152,7 +152,7 @@ locals {
 
 resource "aws_route53_record" "hello_world_svc_alb_record" {
   zone_id = var.route53_main_zone_id
-  name = "${var.environment}.${local.hello_world_subdomain_name}.${data.aws_route53_zone.main-zone.name}"
+  name = "${var.environment}.${local.hello_world_subdomain_name}.${data.aws_route53_zone.main_zone.name}"
   type    = "A"
 
   alias {
